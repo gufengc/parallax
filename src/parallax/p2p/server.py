@@ -50,6 +50,7 @@ class ServerState(enum.Enum):
     JOINING = "joining"
     INITIALIZING = "initializing"
     READY = "ready"
+    REBALANCING = "rebalancing"
     OFFLINE = "offline"
     ERROR = "error"
 
@@ -182,6 +183,16 @@ class TransformerConnectionHandler(ConnectionHandler):
         except Exception as e:
             logger.exception(f"Error in chat completion: {e}")
             yield b"internal server error"
+
+    @rpc_method
+    def rebalance(self, request):
+        try:
+            with self._recv_from_peer_lock:
+                self.recv_from_peer.send_multipart([b"rebalance", request])
+        except Exception as e:
+            logger.exception(f"Error in rebalance: {e}")
+            return {"status": "error", "message": str(e)}
+        return {"status": "success"}
 
 
 class GradientServer:
